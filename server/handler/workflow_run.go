@@ -23,6 +23,7 @@ import (
 	"github.com/palantir/policy-bot/policy/common"
 	"github.com/palantir/policy-bot/pull"
 	"github.com/pkg/errors"
+	"github.com/rs/zerolog"
 )
 
 type WorkflowRun struct {
@@ -39,6 +40,10 @@ func (h *WorkflowRun) Handle(ctx context.Context, eventType, deliveryID string, 
 		return errors.Wrap(err, "failed to parse workflow_run event payload")
 	}
 
+	lgr := zerolog.Ctx(ctx).With().Str("event_type", eventType).Any("event", event).Logger()
+
+	lgr.Info().Msg("Handling workflow_run event")
+
 	if event.GetAction() != "completed" {
 		return nil
 	}
@@ -53,6 +58,7 @@ func (h *WorkflowRun) Handle(ctx context.Context, eventType, deliveryID string, 
 
 	evaluationFailures := 0
 	for _, pr := range event.GetWorkflowRun().PullRequests {
+		logger.Info().Msgf("Evaluating pull request '%d' for SHA '%s'", pr.GetNumber(), commitSHA)
 		if err := h.Evaluate(ctx, installationID, common.TriggerStatus, pull.Locator{
 			Owner:  ownerName,
 			Repo:   repoName,

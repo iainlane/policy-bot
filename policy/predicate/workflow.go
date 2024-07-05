@@ -23,6 +23,7 @@ import (
 	"github.com/palantir/policy-bot/policy/common"
 	"github.com/palantir/policy-bot/pull"
 	"github.com/pkg/errors"
+	"github.com/rs/zerolog"
 )
 
 type HasWorkflowResult struct {
@@ -40,7 +41,9 @@ func NewHasWorkflowResult(workflows []string, conclusions []string) *HasWorkflow
 var _ Predicate = HasWorkflowResult{}
 
 func (pred HasWorkflowResult) Evaluate(ctx context.Context, prctx pull.Context) (*common.PredicateResult, error) {
-	workflowRuns, err := prctx.LatestWorkflowRuns()
+	logger := zerolog.Ctx(ctx).With().Str("policy", "workflow_run").Logger()
+	logger.Info().Msg("Evaluating workflow run policy")
+	workflowRuns, err := prctx.LatestWorkflowRuns(logger)
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to list latest workflow runs")
 	}

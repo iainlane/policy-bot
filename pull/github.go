@@ -22,6 +22,7 @@ import (
 
 	"github.com/google/go-github/v65/github"
 	"github.com/pkg/errors"
+	"github.com/rs/zerolog"
 	"github.com/shurcooL/githubv4"
 )
 
@@ -839,8 +840,10 @@ func (ghc *GitHubContext) getCheckStatuses() (map[string]string, error) {
 	return statuses, nil
 }
 
-func (ghc *GitHubContext) LatestWorkflowRuns() (map[string][]string, error) {
+func (ghc *GitHubContext) LatestWorkflowRuns(logger zerolog.Logger) (map[string][]string, error) {
+	logger.Debug().Msg("Getting latest workflow runs")
 	if ghc.workflowRuns != nil {
+		logger.Debug().Msg("Using cached workflow runs")
 		return ghc.workflowRuns, nil
 	}
 
@@ -887,7 +890,9 @@ func (ghc *GitHubContext) LatestWorkflowRuns() (map[string][]string, error) {
 		}
 
 		for _, run := range runs.WorkflowRuns {
+			log := logger.With().Str("workflow", *run.Path).Str("event", run.GetEvent()).Str("status", run.GetStatus()).Time("updated_at", run.GetUpdatedAt().Time).Logger()
 			if run.GetStatus() != "completed" {
+				log.Debug().Msg("Skipping incomplete workflow run")
 				continue
 			}
 
@@ -918,6 +923,7 @@ func (ghc *GitHubContext) LatestWorkflowRuns() (map[string][]string, error) {
 
 	for path, eventRuns := range runsWithDate {
 		for _, run := range eventRuns {
+			logger.Debug().Str("workflow", path).Str("event", run.GetEvent()).Str("status", run.GetConclusion()).Time("updated_at", run.GetUpdatedAt().Time).Msg("Adding workflow run")
 			workflowRuns[path] = append(workflowRuns[path], run.GetConclusion())
 		}
 	}

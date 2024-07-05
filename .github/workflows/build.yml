@@ -2,9 +2,12 @@ name: Build
 
 on:
   push:
-    branches: [develop]
+    branches:
+      [
+        iainlane/has-successful-status-allow-skipped-workflows-to-count-as-passes-build,
+      ]
     tags-ignore:
-      - '**'
+      - "**"
 
   pull_request:
 
@@ -19,119 +22,121 @@ jobs:
       GOPATH: /home/runner/go
 
     steps:
-    - uses: actions/checkout@v4
-      with:
-        fetch-depth: 0
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
-    - name: Set Go version
-      id: go_version
-      run: |
-        GO_VERSION=$(sed -E -n '/^go / s/^go ([0-9]+\.[0-9]+)(\.[0-9]+)?$/\1/p' < go.mod)
-        echo "version=${GO_VERSION}" >> $GITHUB_OUTPUT
+      - name: Set Go version
+        id: go_version
+        run: |
+          GO_VERSION=$(sed -E -n '/^go / s/^go ([0-9]+\.[0-9]+)(\.[0-9]+)?$/\1/p' < go.mod)
+          echo "version=${GO_VERSION}" >> $GITHUB_OUTPUT
 
-    - name: Set up Go
-      uses: actions/setup-go@v5
-      with:
-        go-version: ${{ steps.go_version.outputs.version }}
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: ${{ steps.go_version.outputs.version }}
 
-    - name: Cache Godel assets
-      uses: actions/cache@v4
-      with:
-        path: ~/.godel
-        key: ${{ runner.os }}-godel-${{ hashFiles('godelw', 'godel/config/godel.yml') }}
-        restore-keys: |
-          ${{ runner.os }}-godel-
+      - name: Cache Godel assets
+        uses: actions/cache@v4
+        with:
+          path: ~/.godel
+          key: ${{ runner.os }}-godel-${{ hashFiles('godelw', 'godel/config/godel.yml') }}
+          restore-keys: |
+            ${{ runner.os }}-godel-
 
-    - name: Verify
-      run: ./godelw verify --apply=false
+      - name: Verify
+        run: ./godelw verify --apply=false
 
   Dist:
     runs-on: ubuntu-latest
     permissions:
       contents: write
+      packages: write
 
     env:
       GOPATH: /home/runner/go
 
     steps:
-    - uses: actions/checkout@v4
-      with:
-        fetch-depth: 0
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
-    - name: Set Go version
-      id: go_version
-      run: |
-        GO_VERSION=$(sed -E -n '/^go / s/^go ([0-9]+\.[0-9]+)(\.[0-9]+)?$/\1/p' < go.mod)
-        echo "version=${GO_VERSION}" >> $GITHUB_OUTPUT
+      - name: Set Go version
+        id: go_version
+        run: |
+          GO_VERSION=$(cat .palantir/go-version | sed 's/^go//' )
+          echo "version=${GO_VERSION}" >> $GITHUB_OUTPUT
 
-    - name: Set up Go
-      uses: actions/setup-go@v5
-      with:
-        go-version: ${{ steps.go_version.outputs.version }}
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: ${{ steps.go_version.outputs.version }}
 
-    - name: Cache Godel assets
-      uses: actions/cache@v4
-      with:
-        path: ~/.godel
-        key: ${{ runner.os }}-godel-${{ hashFiles('godelw', 'godel/config/godel.yml') }}
-        restore-keys: |
-          ${{ runner.os }}-godel-
+      - name: Cache Godel assets
+        uses: actions/cache@v4
+        with:
+          path: ~/.godel
+          key: ${{ runner.os }}-godel-${{ hashFiles('godelw', 'godel/config/godel.yml') }}
+          restore-keys: |
+            ${{ runner.os }}-godel-
 
-    - name: Set up Node
-      uses: actions/setup-node@v4
-      with:
-        node-version: 20
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
 
-    - name: Cache node_modules
-      uses: actions/cache@v4
-      with:
-        path: node_modules
-        key: ${{ runner.os }}-node-modules-${{ hashFiles('yarn.lock') }}
-        restore-keys: |
-          ${{ runner.os }}-node-modules-
+      - name: Cache node_modules
+        uses: actions/cache@v4
+        with:
+          path: node_modules
+          key: ${{ runner.os }}-node-modules-${{ hashFiles('yarn.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-node-modules-
 
-    - name: Install frontend dependencies
-      run: yarn install
+      - name: Install frontend dependencies
+        run: yarn install
 
-    - name: Build frontend
-      run: yarn run build:production
+      - name: Build frontend
+        run: yarn run build:production
 
-    - name: Build distribution
-      run: ./godelw dist
+      - name: Build distribution
+        run: ./godelw dist
 
-    - name: Build Docker image
-      run: ./godelw docker build --verbose
+      - name: Build Docker image
+        run: ./godelw docker build --verbose
 
-    - name: Archive distribution
-      uses: actions/upload-artifact@v4
-      with:
-        name: dist
-        path: |
-          build/policy-bot/*/bin/*.tgz
+      - name: Archive distribution
+        uses: actions/upload-artifact@v4
+        with:
+          name: dist
+          path: |
+            build/policy-bot/*/bin/*.tgz
 
-    #
-    # Steps after this point should only run when publishing
-    # Include them here to avoid exporting the Docker container as an artifact
-    #
+      #
+      # Steps after this point should only run when publishing
+      # Include them here to avoid exporting the Docker container as an artifact
+      #
 
-    - name: Login to Docker Hub
-      if: ${{ github.event_name == 'push' || github.event_name == 'release' }}
-      uses: docker/login-action@v3
-      with:
-        username: ${{ secrets.DOCKERHUB_USERNAME }}
-        password: ${{ secrets.DOCKERHUB_PASSWORD }}
+      - name: Login to Docker Hub
+        if: ${{ github.event_name == 'push' || github.event_name == 'release' }}
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ github.token }}
 
-    - name: Push snapshot image to Docker Hub
-      if: ${{ github.event_name == 'push' && github.ref == 'refs/heads/develop' }}
-      run: ./godelw docker push --tags=snapshot
+      - name: Push snapshot image to Docker Hub
+        if: ${{ github.event_name == 'push' && github.ref == 'refs/heads/develop' }}
+        run: ./godelw docker push --tags=snapshot
 
-    - name: Push release image to Docker Hub
-      if: ${{ github.event_name == 'release' }}
-      run: ./godelw docker push --tags=latest,version
+      - name: Push release image to Docker Hub
+        if: ${{ github.event_name == 'push' }}
+        run: ./godelw docker push --tags=latest
 
-    - name: Publish release assets
-      if: ${{ github.event_name == 'release' }}
-      run: ./godelw publish github --add-v-prefix --api-url=${GITHUB_API_URL} --user=palantir --repository=policy-bot --token=${{ secrets.GITHUB_TOKEN }}
+      - name: Publish release assets
+        if: ${{ github.event_name == 'release' }}
+        run: ./godelw publish github --add-v-prefix --api-url=${GITHUB_API_URL} --user=palantir --repository=policy-bot --token=${{ secrets.GITHUB_TOKEN }}
 
   ci-all:
     runs-on: ubuntu-latest
@@ -139,5 +144,5 @@ jobs:
       - Verify
       - Dist
     steps:
-    - name: Complete
-      run: exit 0
+      - name: Complete
+        run: exit 0

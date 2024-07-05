@@ -18,6 +18,7 @@ import (
 	"time"
 
 	"github.com/palantir/policy-bot/pull"
+	"github.com/rs/zerolog"
 )
 
 type Context struct {
@@ -257,7 +258,7 @@ func (c *Context) LatestStatuses() (map[string]string, error) {
 	return c.LatestStatusesValue, c.LatestStatusesError
 }
 
-func (c *Context) LatestWorkflowRuns() (map[string][]string, error) {
+func (c *Context) LatestWorkflowRuns(zerolog.Logger) (map[string][]string, error) {
 	return c.LatestWorkflowRunsValue, c.LatestWorkflowRunsError
 }
 

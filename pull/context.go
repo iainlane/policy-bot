@@ -16,6 +16,8 @@ package pull
 
 import (
 	"time"
+
+	"github.com/rs/zerolog"
 )
 
 // MembershipContext defines methods to get information
@@ -127,7 +129,7 @@ type Context interface {
 	// LatestWorkflowRuns returns the latest GitHub Actions workflow runs for
 	// the pull request. The keys of the map are paths to the workflow files and
 	// the values are the conclusions of the latest runs, one per event type.
-	LatestWorkflowRuns() (map[string][]string, error)
+	LatestWorkflowRuns(logger zerolog.Logger) (map[string][]string, error)
 
 	// Labels returns a list of labels applied on the Pull Request
 	Labels() ([]string, error)

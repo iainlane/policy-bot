@@ -11,10 +11,10 @@ products:
       environment:
         CGO_ENABLED: "0"
       os-archs:
-      - os: linux
-        arch: amd64
-      - os: linux
-        arch: arm64
+        - os: linux
+          arch: amd64
+        - os: linux
+          arch: arm64
     dist:
       output-dir: build
       disters:
@@ -42,7 +42,7 @@ products:
             cp -R config ${CONTEXT_DIR}
           tag-templates:
             version: "{{Repository}}palantirtechnologies/policy-bot:{{Version}}"
-            latest: "{{Repository}}palantirtechnologies/policy-bot:latest"
+            latest: "ghcr.io/iainlane/policy-bot:latest"
             snapshot: "{{Repository}}palantirtechnologies/policy-bot:snapshot"
     publish:
       group-id: com.palantir.policy-bot

@@ -24,6 +24,7 @@ import (
 	"time"
 
 	"github.com/google/go-github/v65/github"
+	"github.com/rs/zerolog"
 	"github.com/shurcooL/githubv4"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -619,7 +620,7 @@ func TestLatestWorkflowRunsNoRuns(t *testing.T) {
 	)
 
 	ctx := makeContext(t, rp, nil, nil)
-	runs, err := ctx.LatestWorkflowRuns()
+	runs, err := ctx.LatestWorkflowRuns(zerolog.Logger{})
 	require.NoError(t, err)
 
 	assert.Len(t, runs, 0, "incorrect number of workflow runs")
@@ -634,7 +635,7 @@ func TestLatestWorkflowRuns(t *testing.T) {
 	)
 
 	ctx := makeContext(t, rp, nil, nil)
-	runs, err := ctx.LatestWorkflowRuns()
+	runs, err := ctx.LatestWorkflowRuns(zerolog.Logger{})
 	require.NoError(t, err)
 
 	assert.Len(t, runs, 3, "incorrect number of workflow runs")
