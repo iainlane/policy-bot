@@ -27,18 +27,26 @@ import (
 )
 
 type Policy struct {
-	Predicates predicate.Predicates `yaml:"if"`
-	Options    Options              `yaml:"options"`
-	Requires   Requires             `yaml:"requires"`
+	Predicates predicate.Predicates `yaml:"if,omitempty"`
+	Options    Options              `yaml:"options,omitempty"`
+	Requires   Requires             `yaml:"requires,omitempty"`
 }
 
 type Options struct {
-	Methods Methods `yaml:"methods"`
+	Methods Methods `yaml:"methods,omitempty"`
+}
+
+func (opts Options) IsZero() bool {
+	return opts.Methods.IsZero()
 }
 
 type Methods struct {
-	Disapprove *common.Methods `yaml:"disapprove"`
-	Revoke     *common.Methods `yaml:"revoke"`
+	Disapprove *common.Methods `yaml:"disapprove,omitempty"`
+	Revoke     *common.Methods `yaml:"revoke,omitempty"`
+}
+
+func (m *Methods) IsZero() bool {
+	return m.Disapprove == nil && m.Revoke == nil
 }
 
 func (opts *Options) GetDisapproveMethods() *common.Methods {

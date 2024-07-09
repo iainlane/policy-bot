@@ -26,23 +26,27 @@ import (
 // team and organization memberships. The set of allowed actors is the union of
 // all conditions in this structure.
 type Actors struct {
-	Users         []string `yaml:"users" json:"users"`
-	Teams         []string `yaml:"teams" json:"teams"`
-	Organizations []string `yaml:"organizations" json:"organizations"`
+	Users         []string `yaml:"users,omitempty" json:"users"`
+	Teams         []string `yaml:"teams,omitempty" json:"teams"`
+	Organizations []string `yaml:"organizations,omitempty" json:"organizations"`
 
 	// Deprecated: use Permissions with "admin" or "write"
-	Admins             bool `yaml:"admins" json:"-"`
-	WriteCollaborators bool `yaml:"write_collaborators" json:"-"`
+	Admins             bool `yaml:"admins,omitempty" json:"-"`
+	WriteCollaborators bool `yaml:"write_collaborators,omitempty" json:"-"`
 
 	// A list of GitHub collaborator permissions that are allowed. Values may
 	// be any of "admin", "maintain", "write", "triage", and "read".
-	Permissions []pull.Permission `yaml:"permissions" json:"permissions"`
+	Permissions []pull.Permission `yaml:"permissions,omitempty" json:"permissions"`
 }
 
 // IsEmpty returns true if no conditions for actors are defined.
 func (a *Actors) IsEmpty() bool {
 	return a == nil || (len(a.Users) == 0 && len(a.Teams) == 0 && len(a.Organizations) == 0 &&
 		len(a.Permissions) == 0 && !a.Admins && !a.WriteCollaborators)
+}
+
+func (a *Actors) IsZero() bool {
+	return a.IsEmpty()
 }
 
 // GetPermissions returns unique permissions ordered from most to least
