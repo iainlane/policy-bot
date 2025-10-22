@@ -25,14 +25,12 @@ import (
 	"github.com/alexedwards/scs"
 	"github.com/bluekeyes/hatpear"
 	"github.com/c2h5oh/datasize"
-	"github.com/die-net/lrucache"
-	"github.com/gregjones/httpcache"
 	"github.com/palantir/go-baseapp/baseapp"
 	"github.com/palantir/go-baseapp/baseapp/datadog"
 	"github.com/palantir/go-githubapp/appconfig"
 	"github.com/palantir/go-githubapp/githubapp"
 	"github.com/palantir/go-githubapp/oauth2"
-	"github.com/palantir/policy-bot/pull"
+	"github.com/palantir/policy-bot/server/cache"
 	"github.com/palantir/policy-bot/server/handler"
 	"github.com/palantir/policy-bot/version"
 	"github.com/pkg/errors"
@@ -98,6 +96,20 @@ func New(c *Config) (*Server, error) {
 		maxSize = int64(c.Cache.MaxSize)
 	}
 
+	redisConfig := cache.RedisConfig{
+		Enabled:            c.Cache.Redis.Enabled,
+		Address:            c.Cache.Redis.Address,
+		Password:           c.Cache.Redis.Password,
+		TLS:                c.Cache.Redis.TLS,
+		LocalHTTPCacheSize: c.Cache.Redis.LocalHTTPCacheSize,
+		LocalPushedAtSize:  c.Cache.Redis.LocalPushedAtSize,
+	}
+
+	httpCacheFactory, err := cache.NewHTTPCacheFactory(redisConfig, maxSize, base.Registry(), logger)
+	if err != nil {
+		return nil, errors.Wrap(err, "failed to initialize HTTP cache factory")
+	}
+
 	githubTimeout := c.Workers.GithubTimeout
 	if githubTimeout == 0 {
 		githubTimeout = DefaultGitHubTimeout
@@ -113,9 +125,7 @@ func New(c *Config) (*Server, error) {
 		c.Github,
 		githubapp.WithClientUserAgent(userAgent),
 		githubapp.WithClientTimeout(githubTimeout),
-		githubapp.WithClientCaching(true, func() httpcache.Cache {
-			return lrucache.New(maxSize, 0)
-		}),
+		githubapp.WithClientCaching(true, httpCacheFactory),
 		githubapp.WithClientMiddleware(
 			githubapp.ClientLogging(
 				zerolog.DebugLevel,
@@ -143,7 +153,7 @@ func New(c *Config) (*Server, error) {
 		pushedAtSize = DefaultPushedAtCacheSize
 	}
 
-	globalCache, err := pull.NewLRUGlobalCache(pushedAtSize)
+	globalCache, err := cache.NewGlobalCache(redisConfig, pushedAtSize, base.Registry(), logger)
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to initialize global cache")
 	}

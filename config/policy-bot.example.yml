@@ -51,6 +51,25 @@ logging:
 #
 # cache:
 #   max_size: "50MB"
+#   pushed_at_size: 100000
+#
+#   # Redis configuration for distributed caching across pods. When enabled,
+#   # each pod maintains a small local LRU cache backed by a shared Redis cache.
+#   # This reduces latency for hot entries while sharing cache across pods.
+#   redis:
+#     enabled: false
+#     address: "your-redis-host:6379"
+#     password: ""  # Optional
+#     tls: false    # Enable TLS for Redis connections
+#
+#     # Size of the local LRU cache per pod for HTTP responses. Defaults to
+#     # 1/5 of max_size if not specified. This provides fast access to hot
+#     # entries without Redis latency.
+#     local_http_cache_size: "10MB"
+#
+#     # Number of entries in the local LRU cache per pod for pushed_at
+#     # timestamps. Defaults to 1/5 of pushed_at_size if not specified.
+#     local_pushed_at_size: 20000
 
 # Options for webhook processing workers. Events are dropped if the queue is
 # full. The defaults are shown below.

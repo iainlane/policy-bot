@@ -71,6 +71,32 @@ type CachingConfig struct {
 	// The size of the global cache for commit push times. Each entry uses
 	// roughly 100 bytes of memory.
 	PushedAtSize int `yaml:"pushed_at_size"`
+
+	// Redis configuration for distributed caching. If enabled, caches are
+	// shared across all pods using Redis as a backing store with local LRU
+	// caches for hot entries.
+	Redis RedisConfig `yaml:"redis"`
+}
+
+type RedisConfig struct {
+	// Enable Redis-backed distributed caching
+	Enabled bool `yaml:"enabled"`
+
+	// Redis server address in host:port format
+	Address string `yaml:"address"`
+
+	// Optional password for Redis authentication
+	Password string `yaml:"password"`
+
+	// Enable TLS for Redis connections
+	TLS bool `yaml:"tls"`
+
+	// Size of the local LRU cache per pod for HTTP responses. This provides
+	// fast access to hot entries while Redis acts as a backing store.
+	LocalHTTPCacheSize datasize.ByteSize `yaml:"local_http_cache_size"`
+
+	// Number of entries in the local LRU cache per pod for pushed_at timestamps.
+	LocalPushedAtSize int `yaml:"local_pushed_at_size"`
 }
 
 type WorkerConfig struct {
